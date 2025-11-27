@@ -1,13 +1,17 @@
 import 'package:cavalink_web/utils/responsive_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sizer/flutter_sizer.dart';
+import 'package:provider/provider.dart';
 import 'package:timelines_plus/timelines_plus.dart';
 import '../../../utils/constants.dart';
+import '../../controllers/models/club_models/categories_model.dart';
 import '../../controllers/models/club_models/events_model.dart';
+import '../../controllers/providers/fence_providers.dart';
 import '../../utils/navigation_helper.dart';
 import '../../utils/opacity_to_alpha.dart';
 import '../../widgets/button_widget.dart';
 import '../../widgets/common_app_bar_widget.dart';
+import '../../widgets/loading_indicator.dart';
 import '../../widgets/web_image.dart';
 import '../dashboard_screen.dart';
 import 'categories_screens/category_screen.dart';
@@ -29,8 +33,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    // Fetch Categories
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<FenceProvider>(context, listen: false)
+          .fetchCategories(context, widget.event.id ?? 0);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
+
+    final provider = Provider.of<FenceProvider>(context);
 
     return PopScope(
       canPop: false,
@@ -51,67 +68,71 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         body: Padding(
           padding: EdgeInsets.symmetric(
               horizontal: responsive.isMobile ? 5.w : 3.w, vertical: 2.h),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: FixedTimeline.tileBuilder(
-                    theme: TimelineThemeData(
-                      nodePosition: 0,
-                      indicatorPosition: 0,
-                      connectorTheme: ConnectorThemeData(
-                        color: gGreyColor,
-                        thickness: 2,
+          child: provider.isCategoriesLoading
+              ? LoadingIndicator()
+              : Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: FixedTimeline.tileBuilder(
+                          theme: TimelineThemeData(
+                            nodePosition: 0,
+                            indicatorPosition: 0,
+                            connectorTheme: ConnectorThemeData(
+                              color: gGreyColor,
+                              thickness: 2,
+                            ),
+                          ),
+                          builder: TimelineTileBuilder.connected(
+                            connectionDirection: ConnectionDirection.before,
+                            itemCount: 4,
+                            indicatorBuilder: (_, i) => Icon(
+                              [
+                                Icons.image,
+                                // Icons.confirmation_number,
+                                Icons.access_time,
+                                Icons.info_outline,
+                                Icons.list_alt_outlined, // NEW ICON FOR INDEX 4
+                              ][i],
+                              color: gHintTextColor,
+                              size: responsive.isMobile ? 3.h : 4.h,
+                            ),
+                            connectorBuilder: (_, __, ___) =>
+                                const SolidLineConnector(
+                                    color: gGreyColor, thickness: 2),
+                            contentsBuilder: (context, index) =>
+                                _buildContent(index, provider, responsive),
+                          ),
+                        ),
                       ),
                     ),
-                    builder: TimelineTileBuilder.connected(
-                      connectionDirection: ConnectionDirection.before,
-                      itemCount: 4,
-                      indicatorBuilder: (_, i) => Icon(
-                        [
-                          Icons.image,
-                          // Icons.confirmation_number,
-                          Icons.access_time,
-                          Icons.info_outline,
-                          Icons.list_alt_outlined, // NEW ICON FOR INDEX 4
-                        ][i],
-                        color: gHintTextColor,
-                        size: responsive.isMobile ? 3.h : 4.h,
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 5.w),
+                      child: ButtonWidget(
+                        text: "View Categories",
+                        onPressed: () {
+                          NavigationHelper.push(
+                            context,
+                            CategoryScreen(event: widget.event),
+                          );
+                        },
+                        isLoading: false,
+                        buttonWidth:
+                            responsive.isMobile ? double.infinity : 20.w,
+                        radius: 8,
+                        color: secondaryColor,
                       ),
-                      connectorBuilder: (_, __, ___) =>
-                          const SolidLineConnector(
-                              color: gGreyColor, thickness: 2),
-                      contentsBuilder: (context, index) =>
-                          _buildContent(index, responsive),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 5.w),
-                child: ButtonWidget(
-                  text: "View Categories",
-                  onPressed: () {
-                    NavigationHelper.push(
-                      context,
-                      CategoryScreen(event: widget.event),
-                    );
-                  },
-                  isLoading: false,
-                  buttonWidth: responsive.isMobile ? double.infinity : 20.w,
-                  radius: 8,
-                  color: secondaryColor,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
   /// MAIN BUILDER SWITCH
-  Widget _buildContent(int index, ResponsiveHelper responsive) {
+  Widget _buildContent(
+      int index, FenceProvider provider, ResponsiveHelper responsive) {
     switch (index) {
       case 0:
         return _buildImageGallery(responsive);
@@ -150,7 +171,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ),
         );
       case 3:
-        return _buildEventDetailImages(responsive);
+        return _buildEventDetailImages(provider, responsive);
       default:
         return const SizedBox();
     }
@@ -262,8 +283,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         ],
       );
 
-  Widget _buildEventDetailImages(ResponsiveHelper responsive) {
+  Widget _buildEventDetailImages(
+      FenceProvider provider, ResponsiveHelper responsive) {
     return Container(
+      width: double.maxFinite,
       margin: EdgeInsets.only(
           left: responsive.isMobile ? 5.w : 2.w, bottom: 3.h, right: 2.w),
       padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
@@ -278,31 +301,174 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Event Details",
-            style: TextStyle(
-              fontSize: fontSize15,
-              fontFamily: fontMedium,
-              color: gBlackColor,
+      child: provider.categories == null || provider.categories!.isEmpty
+          ? Center(
+              child: Text(
+                "No categories available",
+                style: TextStyle(
+                  fontSize: fontSize14,
+                  fontFamily: fontMedium,
+                  color: gBlackColor,
+                ),
+              ),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Event Details",
+                    style: TextStyle(
+                      fontSize: fontSize15,
+                      fontFamily: fontMedium,
+                      color: gBlackColor,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Wrap(
+                    spacing: responsive.isMobile ? 2.w : 1.w,
+                    runSpacing: 2.h,
+                    children: List.generate(
+                      provider.categories!.length,
+                      (index) {
+                        final category = provider.categories![index];
+
+                        return GestureDetector(
+                          onTap: () {
+                            showSubCategoryPopup(category, index,responsive);
+                          },
+                          child: Container(
+                            width: responsive.isMobile ? 100.w : 25.w,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: responsive.isMobile ? 4.w : 2.w,
+                                vertical: 2.h),
+                            decoration: BoxDecoration(
+                              color: gWhiteColor,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: gBlackColor
+                                      .withAlpha(AlphaHelper.fromOpacity(0.2)),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                )
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.flag_outlined,
+                                    color: secondaryColor, size: 3.h),
+                                SizedBox(
+                                    width: responsive.isMobile ? 3.w : 1.w),
+                                Expanded(
+                                  child: Text(
+                                    category.categoryName ?? "",
+                                    style: TextStyle(
+                                      fontSize: fontSize15,
+                                      fontFamily: fontMedium,
+                                      color: gHintTextColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  void showSubCategoryPopup(Category categories, int index,ResponsiveHelper responsive) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: gWhiteColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          insetPadding: EdgeInsets.symmetric(vertical: 2.h, horizontal: responsive.isMobile ? 3.w : 30.w),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 3.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Heading
+                Center(
+                  child: Text(
+                    categories.categoryName ?? '',
+                    style: TextStyle(
+                      fontSize: fontSize16,
+                      fontFamily: fontMedium,
+                      color: gBlackColor,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 1.h),
+                  child: Divider(),
+                ),
+                ListView.builder(
+                  itemCount: categories.ageGroups?.length,
+                  shrinkWrap: true,
+                  physics: BouncingScrollPhysics(),
+                  itemBuilder: (context, i) {
+                    final sub = categories.ageGroups?[i];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Sub category name heading
+                        Text(
+                          sub?.ageGroupName ?? '',
+                          style: TextStyle(
+                            fontSize: fontSize14,
+                            fontFamily: fontMedium,
+                            color: gBlackColor,
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 1.5.w,vertical: 1.h),
+                          margin: EdgeInsets.symmetric(horizontal: 1.5.w,vertical: 2.h),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: gBlackColor.withAlpha(AlphaHelper.fromOpacity(0.1)),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _detailRow("Table", sub?.ageGroupTable ?? ''),
+                              _detailRow("Max Penalty", sub?.maxPenalty ?? ''),
+                              _detailRow("Height", sub?.height ?? ''),
+                              _detailRow("Speed", sub?.speed ?? ''),
+                              _detailRow("Length", sub?.length ?? ''),
+                            ],
+                          ),
+                        ),
+
+                      ],
+                    );
+                  },
+                ),
+
+                SizedBox(height: 2.h),
+              ],
             ),
           ),
-          SizedBox(height: 2.h),
-          _detailRow("Table", "A"),
-          _detailRow("Height", "100 CM"),
-          _detailRow("Obstacle", "10"),
-          _detailRow("Efforts", "11"),
-          _detailRow("Course Walk", "1500 HRS"),
-          Divider(height: 25),
-          _detailRow("Speed", "325 M/MIN"),
-          _detailRow("Length", "420 MTR"),
-          _detailRow("Time Allowed", "78 SEC"),
-          _detailRow("Time Limit", "156 SEC"),
-          _detailRow("Start Time", "1545 HRS"),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -316,15 +482,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             "$label :",
             style: TextStyle(
               fontSize: fontSize13,
-              fontFamily: fontMedium,
+              fontFamily: fontBook,
               color: gHintTextColor,
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: fontSize13,
-              fontFamily: fontBook,
+              fontSize: fontSize14,
+              fontFamily: fontMedium,
               color: gBlackColor,
             ),
           ),

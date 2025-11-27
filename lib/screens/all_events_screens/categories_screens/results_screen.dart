@@ -8,6 +8,7 @@ import '../../../utils/constants.dart';
 import '../../../utils/opacity_to_alpha.dart';
 import '../../../utils/responsive_helper.dart';
 import '../../../widgets/common_app_bar_widget.dart';
+import '../../../widgets/status_info.dart';
 
 class ResultsScreen extends StatefulWidget {
   final Ongoing event;
@@ -30,7 +31,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
 
-    return PopScope(canPop: false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: gWhiteColor,
         appBar: CommonAppBarWidget(
@@ -66,11 +68,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
           width: 1,
           height: double.infinity,
           color: Colors.grey.shade300,
-          margin: EdgeInsets.symmetric(horizontal: 2.w,vertical: 2.h),
+          margin: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
         ),
         Expanded(
           flex: 6,
-          child:  Column(
+          child: Column(
             children: [
               fenceDetails(responsive),
             ],
@@ -119,7 +121,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       children: [
         Center(
           child: Container(
-            padding: EdgeInsets.symmetric(vertical: 1.5.h, horizontal: responsive.isMobile? 5.w : 2.w),
+            padding: EdgeInsets.symmetric(
+                vertical: 1.5.h, horizontal: responsive.isMobile ? 5.w : 2.w),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
@@ -129,10 +132,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   offset: Offset(2, 0),
                 )
               ],
-              color: getStatusColor(widget.participants.status),
+              color: StatusHelper.getStatus(widget.participants.status).color,
             ),
             child: Text(
-              getStatusLabel(widget.participants.status),
+              StatusHelper.getStatus(widget.participants.status).label,
               style: TextStyle(
                 fontSize: fontSize15,
                 fontFamily: fontMedium,
@@ -143,7 +146,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
         ),
         SizedBox(height: responsive.isMobile ? 2.h : 5.h),
         Padding(
-          padding: responsive.isMobile ? EdgeInsets.symmetric(horizontal: 5.w) : EdgeInsets.only(right: 1.w,left: 3.w),
+          padding: responsive.isMobile
+              ? EdgeInsets.symmetric(horizontal: 5.w)
+              : EdgeInsets.only(right: 1.w, left: 3.w),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -156,7 +161,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
         ),
         SizedBox(height: 2.h),
         Padding(
-          padding: responsive.isMobile ? EdgeInsets.symmetric(horizontal: 5.w) : EdgeInsets.only(right: 1.w,left: 3.w),
+          padding: responsive.isMobile
+              ? EdgeInsets.symmetric(horizontal: 5.w)
+              : EdgeInsets.only(right: 1.w, left: 3.w),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -182,7 +189,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: responsive.isMobile ? 5.w : 1.w),
+            padding: EdgeInsets.symmetric(
+                horizontal: responsive.isMobile ? 5.w : 1.w),
             child: Text(
               "Fence Details",
               style: TextStyle(
@@ -197,7 +205,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
             itemCount: validFences.length,
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: responsive.isMobile ? 5.w : 1.w),
+            padding: EdgeInsets.symmetric(
+                horizontal: responsive.isMobile ? 5.w : 1.w),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: responsive.isMobile ? 3 : 5,
               mainAxisSpacing: 14,
@@ -212,36 +221,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
         ],
       ),
     );
-  }
-
-  String getStatusLabel(String? status) {
-    switch (status?.toLowerCase()) {
-      case "registered":
-        return "New";
-      case "withdrawn":
-        return "Withdrawn";
-      case "eliminated":
-        return "Eliminated";
-      case "active":
-        return "Qualified";
-      default:
-        return "Unknown";
-    }
-  }
-
-  Color getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case "registered":
-        return Colors.white;
-      case "withdrawn":
-        return Colors.yellow;
-      case "eliminated":
-        return Colors.red;
-      case "active":
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
   }
 
   /// STATUS BOX WIDGET

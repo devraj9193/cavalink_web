@@ -177,7 +177,7 @@ class _TotalPointsScreenState extends State<TotalPointsScreen> {
                                   0;
 
                               if (totalPenalty > maxPenalty) {
-                                finalStatus = "eliminated";
+                                finalStatus = "disqualified";
                               }
                               // else keep widget.status as is (e.g., "registered" or "active")
                             }
